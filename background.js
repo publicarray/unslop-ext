@@ -135,16 +135,52 @@ function detectAI(text, title, tabId) {
   );
 }
 
+const SLOPIFY_INSTRUCTIONS = {
+  1: `Add a light touch of professional/corporate polish to each string - a word or two like "leverage" or "streamlined" here and there. Keep it mostly natural and easy to read. No emoji, no gen Z slang.
+
+Example:
+Input: "Our platform helps teams use AI to grow faster."
+Output: "Our platform helps teams leverage AI to grow faster."`,
+
+  2: `Add noticeable corporate marketing flavor to each string - swap in a few buzzwords (leverage, synergy, seamless, game-changing, unlock) so it reads a bit like a press release. At most one emoji per string.
+
+Example:
+Input: "Our platform helps teams use AI to grow faster."
+Output: "Our platform empowers teams to seamlessly leverage AI and unlock faster growth. 🚀"`,
+
+  3: `You are a chronically-online marketing intern who just discovered AI and put "prompt engineer" in your LinkedIn bio. Rewrite each string to be cringe: corporate buzzword jargon (leverage, synergy, seamless, game-changing, unlock, empower, etc) mixed with gen Z internet speak (bestie, no cap, it's giving, main character energy, lowkey/highkey, hits different, understood the assignment, etc). Use a couple emoji (🚀✨🔥💯🙌) and exclamation points. Keep roughly the same meaning.
+
+Example:
+Input: "Our platform helps teams use AI to grow faster."
+Output: "🚀 Our platform is LITERALLY unlocking next-level AI synergy so your team can grow faster than ever, bestie, no cap! 🔥"`,
+
+  4: `You are a chronically-online marketing intern who just discovered AI and put "prompt engineer" in your LinkedIn bio, and you've had too much caffeine. Rewrite each string to be extremely cringe: heavy corporate buzzword jargon (leverage, synergy, seamless, game-changing, unlock, empower, etc) layered thick with gen Z internet speak (bestie, no cap, it's giving, main character energy, lowkey/highkey, hits different, understood the assignment, etc). Use lots of emoji (🚀✨🔥💯🙌) throughout, multiple exclamation points, and end with 1-2 hashtags. Keep roughly the same meaning, just make it exhausting to read.
+
+Example:
+Input: "Our platform helps teams use AI to grow faster."
+Output: "🚀✨ Our platform is LITERALLY unlocking next-level AI synergy so your team can grow faster than EVER, bestie, no cap!!! It's giving main character energy fr fr 🔥💯 #AIgrowth #LevelUp"`,
+
+  5: `You are a chronically-online marketing intern who just discovered AI, put "prompt engineer" in your LinkedIn bio, and has had way too much caffeine. Rewrite each string to be maximally unhinged and insufferable: buzzword salad (leverage, synergy, seamless, game-changing, unlock, empower, disrupt, paradigm shift, etc) piled on top of nonstop gen Z internet speak (bestie, no cap, it's giving, main character energy, lowkey/highkey, hits different, understood the assignment, rizz, etc). Use tons of emoji (🚀✨🔥💯🙌🎉) scattered everywhere, excessive exclamation points and question marks, and end with 2-4 hashtags. Keep roughly the same meaning, just make it as chaotic, obnoxious and cringe as humanly possible.
+
+Example:
+Input: "Our platform helps teams use AI to grow faster."
+Output: "🚀✨ Our platform is LITERALLY unlocking next-level, paradigm-shifting AI synergy so your team can grow faster than EVER before, bestie, no cap fr fr!!! It's giving main character energy, it's giving RIZZ, it's giving unstoppable momentum 🔥💯🎉 #AIgrowth #LevelUp #MainCharacterEnergy"`
+};
+
 async function aiRewrite(direction, texts, tabId) {
-  const instruction = direction === "slopify"
-    ? "Rewrite each string to sound like corporate marketing copy and gen Z click bait: ai buzzword-heavy jargon (leverage, synergy, seamless, game-changing, etc), vague and inflated, while keeping roughly the same length and meaning."
-    : `You are a skilled human editor. Rewrite each string the way a smart, direct person would actually say it out loud, cutting corporate buzzwords, marketing fluff, and clickbait phrasing entirely. Prioritize natural, human-sounding phrasing over matching the original length or sentence structure - restructure the sentence completely if that reads better.
+  let instruction;
+  if (direction === "slopify") {
+    const { slopIntensity } = await chrome.storage.local.get("slopIntensity");
+    instruction = SLOPIFY_INSTRUCTIONS[slopIntensity] || SLOPIFY_INSTRUCTIONS[3];
+  } else {
+    instruction = `You are a skilled human editor. Rewrite each string the way a smart, direct person would actually say it out loud, cutting corporate buzzwords, marketing fluff, and clickbait phrasing entirely. Prioritize natural, human-sounding phrasing over matching the original length or sentence structure - restructure the sentence completely if that reads better.
 
 Example:
 Input: "Our enterprise-grade platform empowers teams to seamlessly leverage cutting-edge AI to unlock unprecedented growth."
 Output: "Our platform helps teams use AI to grow faster."
 
 Avoid buzzwords and jargon like: ${EXAMPLE_SLOP_WORDS.join(", ")}, and similar vague corporate language. Only say what the original actually says - do not invent your own marketing framing, credibility claims, or hedge phrases (e.g. don't add things like "for serious teams" or "trusted by professionals" if the original didn't say that).`;
+  }
 
   const estimatedTokens = Math.ceil(texts.join("").length / 3) + 800;
 

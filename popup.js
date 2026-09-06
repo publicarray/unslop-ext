@@ -114,14 +114,34 @@ async function sendToContent(action) {
 
 document.getElementById("slopify").addEventListener("click", () => sendToContent("slopify"));
 document.getElementById("unslopify").addEventListener("click", () => sendToContent("unslopify"));
-document.getElementById("reset").addEventListener("click", () => sendToContent("reset"));
+document.getElementById("reset").addEventListener("click", async () => {
+  await sendToContent("reset");
+  setJargonButtonLabel(false);
+});
+
+function setJargonButtonLabel(active) {
+  document.getElementById("flagJargon").textContent = active ? "Unflag corporate jargon" : "Flag corporate jargon";
+}
+
+async function syncJargonButton() {
+  const tab = await activeTab();
+  try {
+    const res = await chrome.tabs.sendMessage(tab.id, { action: "jargonStatus" });
+    setJargonButtonLabel(res.active);
+  } catch {
+    setJargonButtonLabel(false);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", syncJargonButton);
 
 document.getElementById("flagJargon").addEventListener("click", async () => {
   const tab = await activeTab();
   const resultEl = document.getElementById("result");
   try {
     const res = await sendToTab(tab.id, { action: "flagJargon" });
-    resultEl.textContent = `Flagged ${res.count} jargon term(s).`;
+    setJargonButtonLabel(res.active);
+    resultEl.textContent = res.active ? `Flagged ${res.count} jargon term(s).` : "Cleared jargon flags.";
   } catch (e) {
     resultEl.textContent = e.message;
   }

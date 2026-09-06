@@ -204,8 +204,16 @@ function resetBuzzwordHighlights() {
   });
 }
 
-async function highlightBuzzwords() {
-  resetBuzzwordHighlights();
+function jargonIsFlagged() {
+  return !!document.querySelector("span.unslop-buzzword");
+}
+
+async function toggleBuzzwordHighlights() {
+  if (jargonIsFlagged()) {
+    resetBuzzwordHighlights();
+    return { ok: true, active: false, count: 0 };
+  }
+
   const { buzzwordStyle } = await chrome.storage.local.get("buzzwordStyle");
   const style = buzzwordStyle || "highlight";
   injectBuzzwordStyle();
@@ -234,7 +242,7 @@ async function highlightBuzzwords() {
     if (lastIndex < text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
     node.replaceWith(frag);
   }
-  return { ok: true, count };
+  return { ok: true, active: true, count };
 }
 
 function pageText() {
@@ -422,7 +430,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     detect().then(sendResponse);
   }
   if (msg.action === "flagJargon") {
-    highlightBuzzwords().then(sendResponse);
+    toggleBuzzwordHighlights().then(sendResponse);
+  }
+  if (msg.action === "jargonStatus") {
+    sendResponse({ active: jargonIsFlagged() });
+    return;
   }
   return true;
 });

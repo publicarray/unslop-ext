@@ -387,7 +387,19 @@ const SLOP_PAIRS = [
   ["guess your background", "we know whether you're X or Y based on this"],
   ["if you know these, you're a fan", "if you can name all of these, you might actually be magical"],
   ["pick your favorites and see what fits you", "design your ideal experience and we'll match you with one"],
-  ["short quiz", "personality quiz that will reveal your true self"]
+  ["short quiz", "personality quiz that will reveal your true self"],
+
+  // gen z internet-speak cringe
+  ["definitely", "no cap"],
+  ["it feels like", "it's giving"],
+  ["confident", "main character energy"],
+  ["feels different", "hits different"],
+  ["did it right", "understood the assignment"],
+  ["honestly", "lowkey"],
+  ["truly", "highkey"],
+  ["friend", "bestie"],
+  ["the mood", "the vibes"],
+  ["memorable", "living rent free in my head"]
 ];
 
 // Generalized regex-based patterns for the UNSLOPIFY direction only (matching varied
