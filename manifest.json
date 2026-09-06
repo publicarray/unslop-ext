@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Unslop",
+  "version": "0.1.0",
+  "description": "Slopify or unslop marketing/clickbait text, and detect AI-generated articles.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost:9931/*", "http://127.0.0.1:9931/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["wordlist.js", "buzzwords.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

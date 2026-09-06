@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 16px; width: 320px; }
+    label { font-size: 12px; color: #555; }
+    input, select { width: 100%; padding: 6px; margin: 4px 0 12px; box-sizing: border-box; }
+    button { padding: 6px 12px; }
+    #status { font-size: 12px; color: green; margin-left: 8px; }
+    p.hint { font-size: 11px; color: #777; margin-top: -8px; }
+  </style>
+</head>
+<body>
+  <h2>Unslop settings</h2>
+  <label for="autoMode">Automatically apply on every page</label>
+  <select id="autoMode">
+    <option value="off">Off</option>
+    <option value="slopify">Auto-slopify</option>
+    <option value="unslopify">Auto-unslop</option>
+  </select>
+  <hr />
+  <label for="aiBackend">AI backend (used by AI rewrite &amp; AI detect)</label>
+  <select id="aiBackend">
+    <option value="chrome-ai">Chrome built-in AI (Gemini Nano)</option>
+    <option value="llama-server">llama-server (external, best quality)</option>
+  </select>
+
+  <div id="llamaFields">
+    <label for="endpoint">Local LLM endpoint (llama-server)</label>
+    <input type="text" id="endpoint" placeholder="http://localhost:9931/v1/chat/completions" />
+    <label for="model">Model name (optional)</label>
+    <input type="text" id="model" placeholder="local" />
+    <p class="hint">Requires llama-server (or any OpenAI-compatible /v1/chat/completions server) running locally. No data leaves your machine.</p>
+  </div>
+
+  <p id="chromeAiHint" class="hint" style="display:none">
+    Uses Chrome's on-device Gemini Nano model, no server needed. Requires
+    chrome://flags/#prompt-api-for-chrome-extensions enabled, then a restart, plus the model
+    downloaded via chrome://components ("Optimization Guide On Device Model"). Not available in
+    Brave or other Chromium forks that strip Google's on-device model component.
+  </p>
+
+  <hr />
+  <label style="display:flex; align-items:center; gap:6px;">
+    <input type="checkbox" id="showOriginalOnHover" style="width:auto; margin:0;" />
+    Show original text on hover after AI rewrite
+  </label>
+
+  <hr />
+  <label for="buzzwordStyle">"Flag corporate jargon" style</label>
+  <select id="buzzwordStyle">
+    <option value="highlight">Highlight background</option>
+    <option value="fade">Fade out (reduce opacity)</option>
+  </select>
+
+  <button id="save">Save</button>
+  <span id="status"></span>
+  <script src="options.js"></script>
+</body>
+</html>

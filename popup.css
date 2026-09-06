@@ -1,0 +1,38 @@
+body {
+  width: 260px;
+  font-family: system-ui, sans-serif;
+  padding: 10px;
+}
+h1 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+.row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+button {
+  flex: 1;
+  padding: 6px;
+  cursor: pointer;
+}
+.label {
+  font-size: 11px;
+  color: #666;
+  margin: 8px 0 4px;
+}
+.full {
+  width: 100%;
+  margin-bottom: 8px;
+}
+#result {
+  margin-top: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+#opts {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <h1>Unslop</h1>
+
+  <p class="label">Word-swap (instant, offline)</p>
+  <div class="row">
+    <button id="slopify">Slopify</button>
+    <button id="unslopify">Unslop</button>
+  </div>
+
+  <hr />
+
+  <p class="label" id="aiLabel">AI rewrite (slower)</p>
+  <div class="row">
+    <button id="aiSlopify">AI slopify</button>
+    <button id="aiUnslop">AI unslop</button>
+  </div>
+
+  <button id="flagJargon" class="full">Flag corporate jargon</button>
+  <button id="reset" class="full">Reset</button>
+
+  <hr />
+  <button id="detect" class="full">Check if AI/clickbait</button>
+  <button id="cancelAi" class="full" hidden>Cancel</button>
+  <div id="result"></div>
+  <a href="options.html" target="_blank" id="opts">Settings</a>
+  <script src="popup.js"></script>
+</body>
+</html>
