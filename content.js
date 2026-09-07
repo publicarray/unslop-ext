@@ -190,7 +190,8 @@ function injectBuzzwordStyle() {
   style.id = "unslop-buzzword-style";
   style.textContent =
     ".unslop-buzzword-fade { opacity: 0.35; }\n" +
-    ".unslop-buzzword-highlight { background: #fff3a0; color: #000; border-radius: 2px; padding: 0 1px; }";
+    ".unslop-buzzword-highlight { background: #fff3a0; color: #000; border-radius: 2px; padding: 0 1px; }\n" +
+    ".unslop-buzzword-replace { color: #c00; font-weight: 600; }";
   document.head.appendChild(style);
 }
 
@@ -198,9 +199,35 @@ function buildBuzzwordRegex() {
   return new RegExp(`\\b(?:${BUZZWORD_TERMS.join("|")})\\b`, "gi");
 }
 
+// Ported from github.com/mourner/bullshit.js's revealBullshit() (MIT License,
+// Copyright (c) 2019 Vladimir Agafonkin) - conjugates "bullshit" to roughly match
+// the matched word's tense/plurality (bullshitting/bullshits/bullshitted/etc).
+function bullshitify(text) {
+  const c = text.charAt(0);
+  const last = text.length - 1;
+  let word = `${c === c.toUpperCase() ? "B" : "b"}ullshit`;
+
+  if (text.substr(last - 2) === "ing") {
+    word += "ting";
+  } else if (text.charAt(last - 1) !== "s" && text.charAt(last) === "s") {
+    word += "s";
+  } else if (text.charAt(last - 2) !== "e" && text.substr(last - 1) === "ed") {
+    word += "ted";
+  } else if (text.charAt(last - 2) !== "o" && text.charAt(last - 2) !== "e" && text.substr(last - 1) === "or") {
+    word += "ter";
+  } else if (text.charAt(last - 2) !== "o" && text.charAt(last - 2) !== "e" && text.substr(last - 1) === "er") {
+    word += "ter";
+  } else if (text.charAt(last - 3) !== "o" && text.charAt(last - 3) !== "e" && text.substr(last - 2) === "ors") {
+    word += "ters";
+  } else if (text.charAt(last - 3) !== "o" && text.charAt(last - 3) !== "e" && text.substr(last - 2) === "ers") {
+    word += "ters";
+  }
+  return word;
+}
+
 function resetBuzzwordHighlights() {
   document.querySelectorAll("span.unslop-buzzword").forEach((span) => {
-    span.replaceWith(document.createTextNode(span.textContent));
+    span.replaceWith(document.createTextNode(span.dataset.unslopOriginal ?? span.textContent));
   });
 }
 
@@ -216,6 +243,7 @@ async function toggleBuzzwordHighlights() {
 
   const { buzzwordStyle } = await chrome.storage.local.get("buzzwordStyle");
   const style = buzzwordStyle || "highlight";
+  const enabled = await hoverEnabled();
   injectBuzzwordStyle();
   const regex = buildBuzzwordRegex();
   let count = 0;
@@ -233,7 +261,17 @@ async function toggleBuzzwordHighlights() {
       if (match.index > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
       const span = document.createElement("span");
       span.className = `unslop-buzzword unslop-buzzword-${style}`;
-      span.textContent = match[0];
+      if (style === "replace") {
+        span.dataset.unslopOriginal = match[0];
+        span.textContent = matchCase(match[0], bullshitify(match[0]));
+        if (enabled) {
+          injectMarkStyle();
+          span.classList.add(MARK_CLASS);
+          span.title = match[0];
+        }
+      } else {
+        span.textContent = match[0];
+      }
       frag.appendChild(span);
       lastIndex = regex.lastIndex;
       if (regex.lastIndex === match.index) regex.lastIndex++;

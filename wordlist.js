@@ -390,14 +390,11 @@ const SLOP_PAIRS = [
   ["short quiz", "personality quiz that will reveal your true self"],
 
   // gen z internet-speak cringe
-  ["definitely", "no cap"],
+  ["definitely", "standing on business"],
   ["it feels like", "it's giving"],
   ["confident", "main character energy"],
   ["feels different", "hits different"],
   ["did it right", "understood the assignment"],
-  ["honestly", "lowkey"],
-  ["truly", "highkey"],
-  ["friend", "bestie"],
   ["the mood", "the vibes"],
   ["memorable", "living rent free in my head"]
 ];
