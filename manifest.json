@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Unslop",
   "version": "0.1.0",
-  "description": "Slopify or unslop marketing/clickbait text, and detect AI-generated articles.",
+  "description": "Slopify or unslop marketing/clickbait text, and highlight AI-written text.",
   "permissions": ["activeTab", "scripting", "storage", "offscreen"],
   "host_permissions": [
     "http://localhost:9931/*",

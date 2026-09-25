@@ -1,13 +1,12 @@
 # Unslop
 
-A browser extension that slopifies or unslops marketing/clickbait text on any page, and detects likely AI-generated or clickbait articles.
+A browser extension that slopifies or unslops marketing/clickbait text on any page, and highlights paragraphs that are likely AI-written.
 
 ## Features
 
 - **Word-swap** — instant, offline slopify/unslop using a curated plain-English ↔ corporate-jargon dictionary.
 - **AI rewrite** — slower, higher-quality rewrite using either Chrome's built-in on-device AI (Gemini Nano) or a local OpenAI-compatible server (e.g. [llama-server](https://github.com/ggml-org/llama.cpp)). Shows exactly which words changed on hover, color-coded by whether the dictionary or the AI made the change.
 - **Flag corporate jargon** — highlights (or fades) buzzwords on the page without rewriting anything
-- **Check if AI/clickbait** — scores a page's AI-generation likelihood and clickbait/marketing-slop level, with a short "unslopped" preview of the title and opening text.
 - **Highlight AI-written paragraphs** — runs the [Gradient AI-text detector](https://huggingface.co/ShantanuT01/gradient-ai-text-detector) (DeBERTa-v3-large, [q4 ONNX build](https://huggingface.co/batmac/gradient-ai-text-detector-onnx)) locally in the browser and tints each paragraph by its P(AI) score. The ~400 MB model downloads from Hugging Face on first use and is cached; page text never leaves your machine. Scores are not calibrated, so don't use them as proof. Chromium only for now (needs the offscreen documents API).
 
 ## Installing

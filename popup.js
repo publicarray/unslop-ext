@@ -43,18 +43,9 @@ function renderDone(resultEl, task) {
     resultEl.textContent = `Rewrote ${result.count} block(s).`;
     return;
   }
-  if (task.kind === "highlight") {
-    resultEl.textContent =
-      `Highlighted ${result.flagged} of ${result.scored} paragraph(s) as likely AI-written. ` +
-      "Hover a paragraph for its score. Scores are not calibrated; don't treat them as proof.";
-    return;
-  }
   resultEl.textContent =
-    `AI likelihood: ${result.ai_likelihood}%\n` +
-    `Slop score: ${result.slop_score}%\n` +
-    `${result.reason}\n\n` +
-    `Unslopped title: ${result.unslopped_title}\n` +
-    `Unslopped excerpt: ${result.unslopped_excerpt}`;
+    `Highlighted ${result.flagged} of ${result.scored} paragraph(s) as likely AI-written. ` +
+    "Hover a paragraph for its score. Scores are not calibrated; don't treat them as proof.";
 }
 
 async function renderTask() {
@@ -166,5 +157,4 @@ async function runTracked(action) {
 
 document.getElementById("aiSlopify").addEventListener("click", () => runTracked("aiSlopify"));
 document.getElementById("aiUnslop").addEventListener("click", () => runTracked("aiUnslop"));
-document.getElementById("detect").addEventListener("click", () => runTracked("detect"));
 document.getElementById("highlightAi").addEventListener("click", () => runTracked("highlightAI"));

@@ -283,10 +283,6 @@ async function toggleBuzzwordHighlights() {
   return { ok: true, active: true, count };
 }
 
-function pageText() {
-  return document.body.innerText.slice(0, 8000);
-}
-
 function aiBlocks() {
   return Array.from(document.querySelectorAll("p, h1, h2, h3, h4, li, blockquote"))
     .filter((el) => {
@@ -402,36 +398,59 @@ function buildDiffFragment(ops, enabled) {
   return frag;
 }
 
-async function doAiRewrite(direction) {
+const REWRITE_BATCH_CHARS = 1500;
+const REWRITE_BATCH_MAX_BLOCKS = 4;
+
+// One request per few paragraphs, so each stays well under the backend timeout
+// and results show up on the page as they arrive.
+function rewriteBatches(texts) {
+  const batches = [];
+  let current = [];
+  let chars = 0;
+  texts.forEach((text, i) => {
+    if (current.length && (chars + text.length > REWRITE_BATCH_CHARS || current.length >= REWRITE_BATCH_MAX_BLOCKS)) {
+      batches.push(current);
+      current = [];
+      chars = 0;
+    }
+    current.push(i);
+    chars += text.length;
+  });
+  if (current.length) batches.push(current);
+  return batches;
+}
+
+async function doAiRewrite(direction, setLabel) {
   const blocks = aiBlocks();
   if (!blocks.length) return { error: "No text blocks found on this page." };
 
   const texts = blocks.map((el) => el.dataset.unslopOriginal ?? el.innerText);
-
-  const res = await chrome.runtime.sendMessage({ action: "aiRewrite", direction, texts });
-  if (res.error) return res;
-
   const enabled = await hoverEnabled();
   let count = 0;
-  res.rewritten.forEach((rawText, i) => {
-    if (typeof rawText !== "string" || !rawText.trim()) return;
-    const segments = direction === "unslopify" ? stripSlopSegments(rawText) : [{ text: rawText, dict: false }];
-    const { tokens: newTokens, dictFlags } = tokenizeWithSource(segments);
-    const original = texts[i];
-    const ops = diffTokens(tokenize(original), newTokens, dictFlags);
-    const frag = buildDiffFragment(ops, enabled);
-    blocks[i].textContent = "";
-    blocks[i].appendChild(frag);
-    blocks[i].dataset.unslopOriginal = original;
-    count++;
-  });
-  return { ok: true, count };
-}
+  let done = 0;
 
-async function detect() {
-  return trackTask("detect", "Checking...", () =>
-    chrome.runtime.sendMessage({ action: "detectAI", text: pageText(), title: document.title })
-  );
+  for (const batch of rewriteBatches(texts)) {
+    const res = await chrome.runtime.sendMessage({ action: "aiRewrite", direction, texts: batch.map((i) => texts[i]) });
+    if (res.error) {
+      return count ? { ...res, error: `${res.error} (rewrote ${count} of ${blocks.length} block(s) before stopping)` } : res;
+    }
+    res.rewritten.forEach((rawText, j) => {
+      if (typeof rawText !== "string" || !rawText.trim()) return;
+      const i = batch[j];
+      const segments = direction === "unslopify" ? stripSlopSegments(rawText) : [{ text: rawText, dict: false }];
+      const { tokens: newTokens, dictFlags } = tokenizeWithSource(segments);
+      const original = texts[i];
+      const ops = diffTokens(tokenize(original), newTokens, dictFlags);
+      const frag = buildDiffFragment(ops, enabled);
+      blocks[i].textContent = "";
+      blocks[i].appendChild(frag);
+      blocks[i].dataset.unslopOriginal = original;
+      count++;
+    });
+    done += batch.length;
+    if (done < blocks.length) await setLabel(`Rewriting with AI (${done}/${blocks.length})...`);
+  }
+  return { ok: true, count };
 }
 
 const PAI_CLASS = "unslop-pai";
@@ -485,7 +504,7 @@ function markAiBlock(el, pAi) {
   const pct = Math.round(pAi * 100);
   el.dataset.unslopPai = String(pct);
   if (!el.hasAttribute("title")) {
-    el.title = `Unslop: ${pct}% likely AI-written (detector score, not a verdict)`;
+    el.title = `${pct}% likely AI-written`;
     el.dataset.unslopPaiTitle = "";
   }
   if (pAi > 0.5) {
@@ -560,10 +579,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.action === "aiSlopify" || msg.action === "aiUnslop") {
     const direction = msg.action === "aiSlopify" ? "slopify" : "unslopify";
-    trackTask("rewrite", "Rewriting with AI...", () => doAiRewrite(direction)).then(sendResponse);
-  }
-  if (msg.action === "detect") {
-    detect().then(sendResponse);
+    trackTask("rewrite", "Rewriting with AI...", (setLabel) => doAiRewrite(direction, setLabel)).then(sendResponse);
   }
   if (msg.action === "highlightAI") {
     trackTask("highlight", "Loading AI-text detector (~400 MB download on first use)...", highlightAiText).then(sendResponse);

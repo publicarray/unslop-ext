@@ -13,18 +13,6 @@ function extractJson(raw) {
   }
 }
 
-const DETECT_SCHEMA = {
-  type: "object",
-  properties: {
-    ai_likelihood: { type: "number" },
-    slop_score: { type: "number" },
-    reason: { type: "string" },
-    unslopped_title: { type: "string" },
-    unslopped_excerpt: { type: "string" }
-  },
-  required: ["ai_likelihood", "slop_score", "reason", "unslopped_title", "unslopped_excerpt"]
-};
-
 const REWRITE_SCHEMA = {
   type: "object",
   properties: {
@@ -126,13 +114,6 @@ async function callLLM(userContent, { schema, tabId, maxTokens } = {}) {
     clearTimeout(timer);
     if (tabId != null) controllers.delete(tabId);
   }
-}
-
-function detectAI(text, title, tabId) {
-  return callLLM(
-    `Analyze this article for: (1) likelihood it is AI-generated (0-100), (2) clickbait/marketing-slop score (0-100), (3) a short "unslopped" rewrite of the title and first paragraph in plain, direct language. Respond as JSON with keys ai_likelihood, slop_score, reason, unslopped_title, unslopped_excerpt.\n\nTitle: ${title}\n\nText:\n${text}`,
-    { schema: DETECT_SCHEMA, tabId, maxTokens: 2000 }
-  );
 }
 
 const SLOPIFY_INSTRUCTIONS = {
@@ -264,10 +245,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "whoami") {
     sendResponse({ tabId: sender.tab?.id });
     return;
-  }
-  if (msg.action === "detectAI") {
-    detectAI(msg.text, msg.title, sender.tab?.id).then(sendResponse);
-    return true;
   }
   if (msg.action === "aiRewrite") {
     aiRewrite(msg.direction, msg.texts, sender.tab?.id).then(sendResponse);
