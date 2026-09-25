@@ -3,8 +3,16 @@
   "name": "Unslop",
   "version": "0.1.0",
   "description": "Slopify or unslop marketing/clickbait text, and detect AI-generated articles.",
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["http://localhost:9931/*", "http://127.0.0.1:9931/*"],
+  "permissions": ["activeTab", "scripting", "storage", "offscreen"],
+  "host_permissions": [
+    "http://localhost:9931/*",
+    "http://127.0.0.1:9931/*",
+    "https://huggingface.co/*",
+    "https://*.hf.co/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
     "service_worker": "background.js"
   },

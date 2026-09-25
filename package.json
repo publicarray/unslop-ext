@@ -1,0 +1,10 @@
+{
+  "name": "unslop-ext",
+  "private": true,
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs"
+  },
+  "devDependencies": {
+    "@huggingface/transformers": "4.3.0"
+  }
+}

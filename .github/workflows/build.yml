@@ -19,12 +19,21 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version manifest.json)" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Vendor transformers.js
+        run: npm ci --ignore-scripts && npm run vendor
+
       - name: Stage extension source
         run: |
           mkdir -p staging
           cp manifest.json background.js content.js wordlist.js buzzwords.js \
-             popup.html popup.js popup.css options.html options.js staging/
+             popup.html popup.js popup.css options.html options.js \
+             offscreen.html offscreen.js staging/
           cp -r icons staging/icons
+          cp -r vendor staging/vendor
 
       - name: Patch manifest for Firefox
         if: matrix.browser == 'firefox'

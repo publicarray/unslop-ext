@@ -319,10 +319,12 @@ async function trackTask(kind, label, fn) {
   } catch (e) {
     return { error: `Could not reach the extension background page: ${e.message}. Try reloading the extension.` };
   }
-  await setTaskForTab(tabId, { kind, label, startTime: Date.now(), status: "running" });
+  const startTime = Date.now();
+  const setLabel = (text) => setTaskForTab(tabId, { kind, label: text, startTime, status: "running" });
+  await setLabel(label);
   let result;
   try {
-    result = await fn();
+    result = await fn(setLabel);
   } catch (e) {
     result = { error: e.message };
   }
@@ -432,6 +434,101 @@ async function detect() {
   );
 }
 
+const PAI_CLASS = "unslop-pai";
+const PAI_SELECTOR = "p, li, blockquote, dd";
+const PAI_MIN_CHARS = 200;
+const PAI_MAX_CHARS = 3000;
+const PAI_MAX_BLOCKS = 60;
+const PAI_BATCH_SIZE = 4;
+const PAI_SEND_RETRIES = 3;
+
+function injectPaiStyle() {
+  if (document.getElementById("unslop-pai-style")) return;
+  const style = document.createElement("style");
+  style.id = "unslop-pai-style";
+  style.textContent =
+    `.${PAI_CLASS} { background-color: rgba(239, 68, 68, var(--unslop-pai-alpha)) !important; ` +
+    "box-shadow: inset 3px 0 0 #ef4444; }";
+  document.head.appendChild(style);
+}
+
+function blockText(el) {
+  return (el.dataset.unslopOriginal ?? el.innerText).trim();
+}
+
+// Short snippets give noisy scores, so only score paragraph-sized blocks, and
+// only the innermost ones so a <p> inside an <li> isn't scored twice.
+function detectorBlocks() {
+  const candidates = new Set(
+    Array.from(document.querySelectorAll(PAI_SELECTOR)).filter(
+      (el) => el.checkVisibility?.() !== false && blockText(el).length >= PAI_MIN_CHARS
+    )
+  );
+  return Array.from(candidates)
+    .filter((el) => !Array.from(el.querySelectorAll(PAI_SELECTOR)).some((inner) => candidates.has(inner)))
+    .slice(0, PAI_MAX_BLOCKS);
+}
+
+// The first request can outlive the service worker while the model downloads. The
+// offscreen document keeps loading, so resending picks up where it left off.
+async function sendScoreRequest(texts) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await chrome.runtime.sendMessage({ action: "scoreAI", texts });
+    } catch (e) {
+      if (attempt >= PAI_SEND_RETRIES) return { error: `Could not reach the extension background page: ${e.message}` };
+    }
+  }
+}
+
+function markAiBlock(el, pAi) {
+  const pct = Math.round(pAi * 100);
+  el.dataset.unslopPai = String(pct);
+  if (!el.hasAttribute("title")) {
+    el.title = `Unslop: ${pct}% likely AI-written (detector score, not a verdict)`;
+    el.dataset.unslopPaiTitle = "";
+  }
+  if (pAi > 0.5) {
+    el.classList.add(PAI_CLASS);
+    // 0.5 -> faint tint, 1.0 -> strongest tint
+    el.style.setProperty("--unslop-pai-alpha", (0.08 + (pAi - 0.5) * 0.5).toFixed(3));
+  }
+}
+
+function resetAiHighlights() {
+  document.querySelectorAll("[data-unslop-pai]").forEach((el) => {
+    el.classList.remove(PAI_CLASS);
+    el.style.removeProperty("--unslop-pai-alpha");
+    if (el.dataset.unslopPaiTitle != null) {
+      el.removeAttribute("title");
+      delete el.dataset.unslopPaiTitle;
+    }
+    delete el.dataset.unslopPai;
+  });
+}
+
+async function highlightAiText(setLabel) {
+  resetAiHighlights();
+  const blocks = detectorBlocks();
+  if (!blocks.length) return { error: `No paragraphs of ${PAI_MIN_CHARS}+ characters found on this page.` };
+  injectPaiStyle();
+
+  let scored = 0;
+  let flagged = 0;
+  for (let i = 0; i < blocks.length; i += PAI_BATCH_SIZE) {
+    const batch = blocks.slice(i, i + PAI_BATCH_SIZE);
+    const res = await sendScoreRequest(batch.map((el) => blockText(el).slice(0, PAI_MAX_CHARS)));
+    if (res.error) return res;
+    res.scores.forEach((pAi, j) => {
+      markAiBlock(batch[j], pAi);
+      scored++;
+      if (pAi > 0.5) flagged++;
+    });
+    if (scored < blocks.length) await setLabel(`Scoring paragraphs (${scored}/${blocks.length})...`);
+  }
+  return { ok: true, scored, flagged };
+}
+
 function resetAiRewrites() {
   aiBlocks().forEach((el) => {
     if (el.dataset.unslopOriginal != null) {
@@ -445,6 +542,7 @@ function resetAll() {
   resetWordSwaps();
   resetAiRewrites();
   resetBuzzwordHighlights();
+  resetAiHighlights();
 }
 
 chrome.storage.local.get("autoMode").then(({ autoMode }) => {
@@ -466,6 +564,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.action === "detect") {
     detect().then(sendResponse);
+  }
+  if (msg.action === "highlightAI") {
+    trackTask("highlight", "Loading AI-text detector (~400 MB download on first use)...", highlightAiText).then(sendResponse);
   }
   if (msg.action === "flagJargon") {
     toggleBuzzwordHighlights().then(sendResponse);

@@ -196,6 +196,52 @@ Avoid buzzwords and jargon like: ${EXAMPLE_SLOP_WORDS.join(", ")}, and similar v
   return result;
 }
 
+const OFFSCREEN_URL = "offscreen.html";
+let creatingOffscreen = null;
+
+async function ensureOffscreen() {
+  if (!chrome.offscreen) {
+    throw new Error("Highlighting AI-written text needs the offscreen documents API, which this browser doesn't support (e.g. Firefox).");
+  }
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [chrome.runtime.getURL(OFFSCREEN_URL)]
+  });
+  if (contexts.length) return;
+  creatingOffscreen ??= chrome.offscreen
+    .createDocument({
+      url: OFFSCREEN_URL,
+      reasons: ["WORKERS"],
+      justification: "Run the local AI-text detector model with ONNX Runtime."
+    })
+    .finally(() => { creatingOffscreen = null; });
+  await creatingOffscreen;
+}
+
+// No HARD_TIMEOUT_MS here: the first call downloads a ~400 MB model.
+async function scoreAI(texts, tabId) {
+  try {
+    await ensureOffscreen();
+  } catch (e) {
+    return { error: e.message };
+  }
+  const controller = new AbortController();
+  if (tabId != null) controllers.set(tabId, controller);
+  const cancelled = new Promise((resolve) => {
+    controller.signal.addEventListener("abort", () => resolve({ error: "Cancelled." }));
+  });
+  try {
+    return await Promise.race([
+      chrome.runtime.sendMessage({ target: "offscreen", action: "score", texts }),
+      cancelled
+    ]);
+  } catch (e) {
+    return { error: `AI-text detector error: ${e.message}` };
+  } finally {
+    if (tabId != null) controllers.delete(tabId);
+  }
+}
+
 async function clearTaskForTab(tabId) {
   const { tasks = {} } = await chrome.storage.local.get("tasks");
   if (tasks[tabId]) {
@@ -226,6 +272,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "aiRewrite") {
     aiRewrite(msg.direction, msg.texts, sender.tab?.id).then(sendResponse);
     return true;
+  }
+  if (msg.action === "scoreAI") {
+    scoreAI(msg.texts, sender.tab?.id).then(sendResponse);
+    return true;
+  }
+  if (msg.action === "detectorProgress") {
+    chrome.storage.local.set({ downloadProgress: msg.progress });
+    return;
   }
   if (msg.action === "cancelAI") {
     const controller = controllers.get(msg.tabId);

@@ -8,13 +8,15 @@ A browser extension that slopifies or unslops marketing/clickbait text on any pa
 - **AI rewrite** — slower, higher-quality rewrite using either Chrome's built-in on-device AI (Gemini Nano) or a local OpenAI-compatible server (e.g. [llama-server](https://github.com/ggml-org/llama.cpp)). Shows exactly which words changed on hover, color-coded by whether the dictionary or the AI made the change.
 - **Flag corporate jargon** — highlights (or fades) buzzwords on the page without rewriting anything
 - **Check if AI/clickbait** — scores a page's AI-generation likelihood and clickbait/marketing-slop level, with a short "unslopped" preview of the title and opening text.
+- **Highlight AI-written paragraphs** — runs the [Gradient AI-text detector](https://huggingface.co/ShantanuT01/gradient-ai-text-detector) (DeBERTa-v3-large, [q4 ONNX build](https://huggingface.co/batmac/gradient-ai-text-detector-onnx)) locally in the browser and tints each paragraph by its P(AI) score. The ~400 MB model downloads from Hugging Face on first use and is cached; page text never leaves your machine. Scores are not calibrated, so don't use them as proof. Chromium only for now (needs the offscreen documents API).
 
 ## Installing
 
 1. Clone or download this repo.
-2. Open `chrome://extensions` (or the equivalent in your Chromium-based browser).
-3. Enable "Developer mode".
-4. Click "Load unpacked" and select this folder.
+2. Run `npm ci --ignore-scripts && npm run vendor` to copy transformers.js and the ONNX Runtime wasm files into `vendor/` (needed for AI-text highlighting; MV3 extensions can't load remote code).
+3. Open `chrome://extensions` (or the equivalent in your Chromium-based browser).
+4. Enable "Developer mode".
+5. Click "Load unpacked" and select this folder.
 
 For Firefox, load it as a temporary add-on via `about:debugging#/runtime/this-firefox`, or install a build from the Releases page (see [`.github/workflows/build.yml`](.github/workflows/build.yml) for how per-browser bundles are produced).
 
